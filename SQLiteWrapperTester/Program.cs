@@ -3,10 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SQLiteWrapper;
 
-namespace SQLiteWrapper_1._0
+namespace SQLiteWrapperTester
 {
-    public class Class1
-    {
-    }
+	class Program
+	{
+		static void Main(string[] args)
+		{
+
+		}
+	}
 }
