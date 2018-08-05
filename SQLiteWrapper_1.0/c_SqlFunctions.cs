@@ -12,9 +12,11 @@ namespace SQLiteWrapper
 {
 	public class c_SqlFunctions
 	{
+		
 		/// <summary>SQLite Connection to be used with the functions</summary>
 		public SQLiteConnection sqlc { get; set; }
 		private List<int> connectedList = new List<int> { 1, 4, 8 };
+		
 
 		/// <summary>Creates the database file if it doesn't already exist</summary>
 		/// <param name="dbname">Name/path of the file to be created</param>
@@ -37,29 +39,11 @@ namespace SQLiteWrapper
 
 			return true;
 		}
+
 		/// <summary>Creates the database file if it doesn't already exist with the default "db.sqlite" name</summary>
 		/// <returns>true if file was created</returns>
 		public bool createDbFile() { return createDbFile(""); }
-
-		public bool createInnerConnection(string dbname)
-		{
-			if (dbname == "") { dbname = "db.sqlite"; }
-
-			try
-			{
-				sqlc = connectToDB(dbname);
-				return true;
-			}
-			catch
-			{
-				return false;
-			}
-		}
-		public bool createInnerConnection()
-		{
-			return createInnerConnection("");
-		}
-
+		
 		/// <summary>Creates and opens connection with DB file</summary>
 		/// <param name="dbname">Name/path of the file to be connected to</param>
 		/// <returns>SQLiteConnection if connected, Null if not</returns>
@@ -84,6 +68,31 @@ namespace SQLiteWrapper
 		/// <summary>Creates and opens connection with DB file with the default "db.sqlite" name</summary>
 		/// <returns>SQLiteConnection if connected, Null if not</returns>
 		public SQLiteConnection connectToDB() { return connectToDB(""); }
+
+		/// <summary>Creates and opens connection with DB file. | Does not return connection, but stores it in this.sqlc</summary>
+		/// <param name="dbname">Name/path of the file to be connected to</param>
+		/// <returns>true if connection successful</returns>
+		public bool createInnerConnection(string dbname)
+		{
+			if (dbname == "") { dbname = "db.sqlite"; }
+
+			try
+			{
+				sqlc = connectToDB(dbname);
+				return true;
+			}
+			catch
+			{
+				return false;
+			}
+		}
+
+		/// <summary>Creates and opens connection with DB file with DB file with the default "db.sqlite" name | Does not return connection, but stores it in this.sqlc</summary>
+		/// <returns>true if connection successful</returns>
+		public bool createInnerConnection()
+		{
+			return createInnerConnection("");
+		}
 
 		/// <summary>Checks the current sqlc connection if it exists and is not closed, connecting or broken</summary>
 		/// <returns>true if connection open, false if doesn't exist or not open</returns>
@@ -114,6 +123,7 @@ namespace SQLiteWrapper
 			return i > 0;
 		}
 
+		//TODO: FIX THIS
 		/// <summary> Modular table creator function | Creates a new named table if that table doesn't yet exist in the database | Uses modular column definition for reusability</summary>
 		/// <param name="tableName">Name of the table to be created</param>
 		/// <param name="columns">Array of columns to be added in the newly created table. Type: SQLiteColumn</param>
@@ -131,7 +141,7 @@ namespace SQLiteWrapper
 			foreach (SQLiteColumn c in columns)
 			{
 				tableBuilder.AppendFormat(" {0} ", c.getColumnDLL());
-				if(!columns.Last<SQLiteColumn>().Equals(c) && c.tableComment == null) { tableBuilder.Append(", \r\n"); }
+				if(!columns.Last<SQLiteColumn>().Equals(c)) { tableBuilder.Append(", \r\n"); }
 			}
 
 			tableBuilder.Append("\r\n); ");
@@ -184,7 +194,10 @@ namespace SQLiteWrapper
 		public string tableName { get; set; }
 		private List<SQLiteColumn> columns = new List<SQLiteColumn>();
 		private int numOfPrimaryKeys = 0;
+		private List<string> tableComments = new List<string>();
 		private List<string> columnNames = new List<string>();
+		private static StringBuilder sb = new StringBuilder();
+		public c_ErrorHandler eh = new c_ErrorHandler();
 
 		public SQLiteTable(string TableName)
 		{
@@ -216,6 +229,7 @@ namespace SQLiteWrapper
 			int primaryKeys = 0;
 			bool sameNames = false;
 			List<string> colNames = new List<string>();
+			
 
 			foreach (SQLiteColumn s in sqlCols)
 			{
@@ -234,18 +248,75 @@ namespace SQLiteWrapper
 			if (sameNames || primaryKeys > 1) { return false; }
 			else { columns.AddRange(sqlCols); columnNames.AddRange(colNames); return true; }
 		}
+
+		public void addComment(string comment)
+		{
+			tableComments.Add(comment);
+		}
+
+		public void removeComment(int index)
+		{
+			if (tableComments.Count >= index)
+			{
+				tableComments.RemoveAt(index);
+			}
+			else
+			{
+
+			}
+		}
+
+		public void removeComment(string comment)
+		{
+			tableComments.Add(comment);
+		}
+
+		public void removeComment(string comment, bool caseInsensitive)
+		{
+			tableComments.Add(comment);
+		}
+
+
+		public string getTableDll()
+		{
+			sb.Append(string.Format("CREATE TABLE {0} (\r\n",tableName));
+			
+			if(tableComments.Count > 0)
+			{
+				sb.Append(string.Format("", string.Join("\r\n", tableComments.ToArray())));
+			}
+
+			foreach (SQLiteColumn c in columns)
+			{
+				sb.Append(string.Format("{0} {1}", c.columnName, c.type()));
+
+				if (!columns.Last().Equals(c)) { sb.Append(", \r\n"); }
+			}
+			sb.Append("\r\n);");
+
+			return sb.ToString();
+		}
 	}
 
 	/// <summary>SQLiteColumn struct, contains all data needed for a basic column definition</summary>
 	public struct SQLiteColumn
 	{
+		
+
 		/// <summary>Name of column</summary>
 		public string columnName { get; set; }
 
 		/// <summary>Datatype of column Type: SQLiteDataType</summary>
 		public SQLiteDataType dataType { get; set; }
 
-		/// <summary>True if the column is Primary key</summary>
+		/// <summary>For certain datatypes a length can be supplied. 
+		/// that value can be passed in here. 
+		/// If the value does not support length, it will not be used. 
+		/// If the data supports length and one is not supplied, default value will be used
+		/// </summary>
+		public int dataLength { get; set; }
+
+		/// <summary> True if the column is Primary key </summary>
 		public bool pimaryKey { get; set; }
 
 		/// <summary>True if the column is Foreign key</summary>
@@ -265,38 +336,18 @@ namespace SQLiteWrapper
 		/// <summary>Public container for Column Comment</summary>
 		public string columnComment { get { return _columnComment; } set { _columnComment = value; hasColumnComment = value.Length > 0; } }
 
-		/// <summary>True if column is additional line</summary>
-		private bool isAdditionalData;
-		/// <summary>Private container for Additional Data</summary>
-		private string _additionalData;
-		/// <summary>Public container for Additional Data</summary>
-		public string additionalData { get { return _additionalData; } set { _additionalData = value; isAdditionalData = value.Length > 0; } }
-
-		/// <summary>True if column is table comment</summary>
-		private bool isTableComment;
-		/// <summary>Private container for Table Comment</summary>
-		private string _tableComment;
-		/// <summary>Public container for Table Comment</summary>
-		public string tableComment { get { return _tableComment; } set { _tableComment = value; isTableComment = value.Length > 0; } }
-
 		/// <summary>Used to write out the PrimaryKey String</summary> <returns>PRIMARY KEY if true empty string otherwise</returns>
 		public string pKey() { return pimaryKey ? " PRIMARY KEY " : ""; }
 
 		/// <summary>Used to write out the SecondaryKey String</summary> <returns>SECONDARY KEY if true empty string otherwise</returns>
-		public string fKey() { return foreignKey ? " FOREIGN KEY " : ""; }
+		public string fKey() { return foreignKey ? " FOREIGN KEY(" + columnName + ") REFERENCES " + foreignTable + "(" + foreignColumn + ") " : ""; }
 
 		/// <summary>Used to write out the SecondaryKey String</summary> <returns>SECONDARY KEY if true empty string otherwise</returns>
 		public string aInc() { return autoIncrement ? " AUTOINCREMENT " : ""; }
-
-		/// <summary>Used to write out any additional lines for table creation</summary> <returns>AddData String if true empty string otherwise</returns>
-		public string aDat() { return isAdditionalData ? string.Format(" {0} ", _additionalData) : ""; }
-
+		
 		/// <summary>Used to write out the column comment if exists</summary> <returns>Comment String if true empty string otherwise</returns>
 		public string cCom() { return hasColumnComment ? string.Format(" /* {0} */ ", _columnComment) : ""; }
-
-		/// <summary>Used to write out the table comment if exists</summary> <returns>Comment String if true empty string otherwise</returns>
-		public string tCom() { return isTableComment ? string.Format(" /* {0} */ ", _tableComment) : ""; }
-
+		
 		/// <summary>Used to write the datatype of the column based on dataType value</summary> <returns>Datatype String</returns>
 		public string type()
 		{
@@ -323,10 +374,110 @@ namespace SQLiteWrapper
 					ret = " TEXT ";
 					break;
 
+				//----------------
+
+
+				case SQLiteDataType.INT:
+					ret = " INT ";
+					break;
+
+				case SQLiteDataType.TINYINT:
+					ret = " TINYINT ";
+					break;
+
+				case SQLiteDataType.SMALLINT:
+					ret = " SMALLINT ";
+					break;
+
+				case SQLiteDataType.MEDIUMINT:
+					ret = " MEDIUMINT ";
+					break;
+
+				case SQLiteDataType.BIGINT:
+					ret = " BIGINT ";
+					break;
+
+				case SQLiteDataType.UNSIGNED_BIG_INT:
+					ret = " UNSIGNED BIG INT ";
+					break;
+
+				case SQLiteDataType.INT2:
+					ret = " INT2 ";
+					break;
+
+				case SQLiteDataType.INT8:
+					ret = " INT8 ";
+					break;
+
+				case SQLiteDataType.CHARACTER:
+					ret = " CHARACTER ";
+					dataLength = ((dataLength == 0) ? 35 : dataLength);
+					break;
+
+				case SQLiteDataType.VARYING_CHARACTER:
+					ret = " VARYING CHARACTER ";
+					dataLength = ((dataLength == 0) ? 120 : dataLength);
+					break;
+
+				case SQLiteDataType.NCHAR:
+					ret = " NCHAR ";
+					dataLength = ((dataLength == 0) ? 35 : dataLength);
+					break;
+
+				case SQLiteDataType.NATIVE_CHARACTER:
+					ret = " NATIVE CHARACTER ";
+					dataLength = ((dataLength == 0) ? 50 : dataLength);
+					break;
+
+				case SQLiteDataType.NVARCHAR:
+					ret = " NVARCHAR ";
+					dataLength = ((dataLength == 0) ? 120 : dataLength);
+					break;
+
+				case SQLiteDataType.VARCHAR:
+					ret = " VARCHAR ";
+					dataLength = ((dataLength == 0) ? 50 : dataLength);
+					break;
+
+				case SQLiteDataType.CLOB:
+					ret = " CLOB ";
+					break;
+
+				case SQLiteDataType.DOUBLE:
+					ret = " DOUBLE ";
+					break;
+
+				case SQLiteDataType.DOUBLE_PRECISION:
+					ret = " DOUBLE PRECISION ";
+					break;
+
+				case SQLiteDataType.FLOAT:
+					ret = " FLOAT ";
+					break;
+
+				case SQLiteDataType.DECIMAL:
+					ret = " DECIMAL ";
+					break;
+
+				case SQLiteDataType.BOOLEAN:
+					ret = " BOOLEAN ";
+					break;
+
+				case SQLiteDataType.DATE:
+					ret = " DATE ";
+					break;
+
+				case SQLiteDataType.DATETIME:
+					ret = " DATETIME ";
+					break;
+					
 				default:
 					ret = " TEXT ";
 					break;
 			}
+
+			ret += (c_globals.typesWithLength.Contains(dataType) ? "(" + dataLength + ")" : "");
+
 			return ret;
 		}
 
@@ -336,19 +487,11 @@ namespace SQLiteWrapper
 		/// <returns>DLL of column</returns>
 		public string getColumnDLL()
 		{
-			if (isTableComment)
-			{
-				return string.Format("\r\n /* {0} */ \r\n", _tableComment);
-			}
-			else if (isAdditionalData)
-			{
-				return string.Format(" {0} ", _additionalData);
-			}
-			else
-			{
-				return string.Format(" {0} {1} {2} {3} ", columnName, type(), pKey() + fKey() + aInc(), cCom());
-			}
-			
+			return string.Format(" Column name: {0} \r\nData type: {1} \r\n {2} {3} ", 
+				columnName, 
+				type(),
+				(pKey() + fKey() + aInc() == "" ? "" : "nModifiers" + pKey() + fKey() + aInc() + "\r\n"),
+				cCom() == "" ? "" : cCom() + "\r\n");
 		}
 	}
 
@@ -360,7 +503,7 @@ namespace SQLiteWrapper
 		TEXT,
 		REAL,
 		NUMERIC,
-
+		//-------
 		INT,
 		TINYINT,
 		SMALLINT,
