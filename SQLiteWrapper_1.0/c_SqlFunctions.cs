@@ -184,10 +184,18 @@ namespace SQLiteWrapper
 
 	}
 
+	//========================================================================================================================
+	//======================================================== SCHEMA ========================================================
+	//========================================================================================================================
+
 	public class SQLiteSchema
 	{
 
 	}
+
+	//========================================================================================================================
+	//======================================================== TABLE =========================================================
+	//========================================================================================================================
 
 	public class SQLiteTable
 	{
@@ -207,6 +215,9 @@ namespace SQLiteWrapper
 			tableName = TableName;
 		}
 
+		/// <summary>
+		/// Adds a column to the table
+		/// </summary>
 		public bool addColumn(SQLiteColumn sqlCol)
 		{
 			if ((!sqlCol.pimaryKey || numOfPrimaryKeys == 0) && !columnNames.Contains(sqlCol.columnName)) { columns.Add(sqlCol); columnNames.Add(sqlCol.columnName); if (sqlCol.pimaryKey) { numOfPrimaryKeys++; } return true; }
@@ -224,6 +235,9 @@ namespace SQLiteWrapper
 			}
 		}
 
+		/// <summary>
+		/// Adds a list of columns to the table
+		/// </summary>
 		public bool addColumns(List<SQLiteColumn> sqlCols)
 		{
 			int primaryKeys = 0;
@@ -249,33 +263,71 @@ namespace SQLiteWrapper
 			else { columns.AddRange(sqlCols); columnNames.AddRange(colNames); return true; }
 		}
 
+		public bool addColumns(SQLiteColumn[] sqlCols)
+		{
+			return addColumns(sqlCols.ToList());
+		}
+
+		/// <summary>
+		/// Adds a comment to the table
+		/// </summary>
 		public void addComment(string comment)
 		{
 			tableComments.Add(comment);
 		}
 
-		public void removeComment(int index)
+
+		public bool removeComment(int index)
 		{
 			if (tableComments.Count >= index)
 			{
 				tableComments.RemoveAt(index);
+				return true;
 			}
-			else
+
+			return false;
+		}
+
+		public bool removeComment(string comment)
+		{
+			if (tableComments.Contains(comment))
 			{
-
+				tableComments.Remove(comment);
+				return true;
 			}
+
+			return false;
 		}
 
-		public void removeComment(string comment)
+		public bool removeComment(string comment, bool caseInsensitive)
 		{
-			tableComments.Add(comment);
+			IEnumerable<string> q = from s in tableComments select s.ToLower();
+			if (q.ToList().Contains(comment.ToLower()))
+			{
+				q = from s in tableComments where s.ToLower() == comment select s;
+				tableComments.Remove(q.Single());
+				return true;
+			}
+
+			return false;
 		}
 
-		public void removeComment(string comment, bool caseInsensitive)
+		public void listComments()
 		{
-			tableComments.Add(comment);
+			Console.WriteLine("=========================================");
+
+			foreach(string s in tableComments)
+			{
+				Console.WriteLine(s);
+			}
+
+			Console.WriteLine("=========================================");
 		}
 
+		public List<string> getComments()
+		{
+			return tableComments;
+		}
 
 		public string getTableDll()
 		{
@@ -297,6 +349,10 @@ namespace SQLiteWrapper
 			return sb.ToString();
 		}
 	}
+
+	//========================================================================================================================
+	//======================================================== COLUMN ========================================================
+	//========================================================================================================================
 
 	/// <summary>SQLiteColumn struct, contains all data needed for a basic column definition</summary>
 	public struct SQLiteColumn

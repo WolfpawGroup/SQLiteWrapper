@@ -12,12 +12,22 @@ namespace SQLiteWrapper
 		public bool showWindow { get; set; } = false;
 		public logLevel loggingLevel { get; set; } = logLevel.level_0;
 
-		public bool Error(string errstr)
+		public bool Error(string errorString, Exception _exception, bool showOnlyException)
 		{
 			if (on && (int)loggingLevel > 0)
 			{
 				Console.ForegroundColor = ConsoleColor.Red;
-				Console.Error.WriteLine("ERROR: " + errstr);
+
+				if (_exception == null || !showOnlyException)
+				{
+					Console.Error.WriteLine("ERROR: " + errorString);
+				}
+
+				if (_exception != null)
+				{
+					Console.Error.WriteLine(_exception.ToString());
+				}
+
 				Console.ForegroundColor = ConsoleColor.Gray;
 
 				if (showWindow)
@@ -27,7 +37,9 @@ namespace SQLiteWrapper
 						_messageType = messageType.Error,
 						_messageHeader = "ERROR",
 						_messageTitle = "ERROR MESSAGE FROM SYSTEM",
-						_messageBody = errstr
+						_messageBody = errorString,
+						_exception = _exception,
+						_showOnlyException = showOnlyException
 					};
 					errW.ShowDialog();
 				}

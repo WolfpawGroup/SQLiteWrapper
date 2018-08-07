@@ -12,15 +12,15 @@ namespace SQLiteWrapper
 {
 	public partial class f_ErrorWindow : Form
 	{
-		public messageType	_messageType { get; set; } = messageType.Error;
-		public string		_messageHeader { get; set; } = "Message!";
-		public string		_messageTitle { get; set; } = "Message!";
-		public string		_messageBody { get; set; } = "";
-		public bool			_useGlossyImages { get; set; } = false;
-		public Exception	_exception { get; set; } = null;
+		public string		_messageHeader		{ get; set; } = "Message!";
+		public string		_messageTitle		{ get; set; } = "Message!";
+		public string		_messageBody		{ get; set; } = "";
+		public bool			_useGlossyImages	{ get; set; } = false;
+		public bool			_showOnlyException	{ get; set; } = true;
+		public messageType	_messageType		{ get; set; } = messageType.Error;
+		public Exception	_exception			{ get; set; } = null;
 		DateTime			_messageTime;
-
-
+		
 		public f_ErrorWindow()
 		{
 			InitializeComponent();
@@ -30,7 +30,6 @@ namespace SQLiteWrapper
 		private void F_ErrorWindow_Load(object sender, EventArgs e)
 		{
 			_messageTime = DateTime.Now;
-			Text = _messageHeader;
 			Bitmap bmp = new Bitmap(100,100);
 			string str = "";
 			Color c = Color.Red;
@@ -67,13 +66,26 @@ namespace SQLiteWrapper
 			lbl_MessageTypeString.Text = str;
 			pb_MessageTypeImage.Image = bmp;
 
-			lbl_MessageTitle.Text = _messageTitle;
-			tb_MessageBody.Text = _messageBody;
-
-			if(_exception != null)
+			if (!_showOnlyException || _exception == null)
 			{
-				tb_MessageBody.AppendText(string.Format("\r\n\r\n==========Exception text==========\r\n\r\n{0}", _exception.ToString()));
+				lbl_MessageTitle.Text = _messageTitle;
+				tb_MessageBody.Text = _messageBody;
+				Text = _messageHeader;
+
+				if (_exception != null)
+				{
+					tb_MessageBody.AppendText(string.Format("\r\n\r\n==========Exception text==========\r\n\r\n{0}", _exception.ToString()));
+				}
 			}
+			else
+			{
+				lbl_MessageTitle.Text = _exception.Message;
+				tb_MessageBody.Text = _exception.ToString();
+				Text = _messageHeader = _exception.Message;
+			}
+			
+
+			
 		}
 
 		private void btn_Copy_Click(object sender, EventArgs e)
